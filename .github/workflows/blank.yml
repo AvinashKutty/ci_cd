@@ -51,16 +51,16 @@ jobs:
         run: docker push $IMAGE_NAME:$IMAGE_TAG
 
       # 8️⃣ Deploy to EC2 via SSH (password authentication)
-     - name: Deploy to EC2
-  uses: appleboy/ssh-action@v0.1.6
-  with:
-    host: ${{ secrets.EC2_HOST }}
-    username: ${{ secrets.EC2_USER }}
-    password: ${{ secrets.EC2_PASSWORD }}
-    port: 22
-    debug: true          # optional, shows full SSH logs
-    script: |
-      sudo docker pull $IMAGE_NAME:$IMAGE_TAG
-      sudo docker stop ci-cd-demo || true
-      sudo docker rm ci-cd-demo || true
-      sudo docker run -d --name ci-cd-demo -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          password: ${{ secrets.EC2_PASSWORD }}
+          port: 22
+          debug: true          # optional, shows full SSH logs
+          script: |
+            sudo docker pull $IMAGE_NAME:$IMAGE_TAG
+            sudo docker stop ci-cd-demo || true
+            sudo docker rm ci-cd-demo || true
+            sudo docker run -d --name ci-cd-demo -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG
