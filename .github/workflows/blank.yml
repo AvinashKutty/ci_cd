@@ -6,11 +6,11 @@ on:
       - main
 
 env:
-  IMAGE_NAME: your-avinashanand28/ci-cd-demo
+  IMAGE_NAME: avinashanand28/ci-cd-demo
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-test:
+  build-test-push-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,21 +22,10 @@ jobs:
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
-      - name: Run Tests
+      - name: Run Node.js Tests
         run: |
-          # Python
-          pip install pytest
-          pytest tests/
-          # Node.js (uncomment if Node)
-          # npm install
-          # npm test
-
-  push-deploy:
-    needs: build-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+          npm install
+          npm test
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -44,8 +33,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Docker Image
+      - name: Push Docker Image to Docker Hub
         run: docker push $IMAGE_NAME:$IMAGE_TAG
 
-      - name: Deploy to Cloud (Optional)
-        run: echo "Add cloud deployment commands here"
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          pass: ${{ secrets.EC2_PASSWORD }}
+          script: |
+            docker pull $IMAGE_NAME:$IMAGE_TAG
+            docker stop ci-cd-demo || true
+            docker rm ci-cd-demo || true
+            docker run -d --name ci-cd-demo -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG
