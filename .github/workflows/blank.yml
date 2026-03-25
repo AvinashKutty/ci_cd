@@ -1,67 +1,11 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches:
-      - main
-
-env:
-  IMAGE_NAME: avinashanand28/ci-cd-demo
-  IMAGE_TAG: ${{ github.sha }}
-
-jobs:
-  build-test-push-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      # 1️⃣ Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # 2️⃣ Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      # 3️⃣ Install dependencies & run tests
-      - name: Install dependencies and Run Tests
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pytest tests/
-
-      # 4️⃣ Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # 5️⃣ Build Docker image
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
-
-      # 6️⃣ Log in to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # 7️⃣ Push Docker image
-      - name: Push Docker Image to Docker Hub
-        run: docker push $IMAGE_NAME:$IMAGE_TAG
-
-      # 8️⃣ Deploy to EC2 via SSH (password authentication)
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          password: ${{ secrets.EC2_PASSWORD }}   # wrap in single quotes in GitHub secrets if special chars exist
-          port: 22
-          debug: true
-          script: |
-            # Use full image name and SHA tag to avoid missing variables
-            sudo docker pull avinashanand28/ci-cd-demo:${{ github.sha }}
-            sudo docker stop ci-cd-demo || true
-            sudo docker rm ci-cd-demo || true
-            sudo docker run -d --name ci-cd-demo -p 5000:5000 avinashanand28/ci-cd-demo:${{ github.sha }}
+- name: Test SSH
+  uses: appleboy/ssh-action@v0.1.6
+  with:
+    host: ${{ secrets.EC2_HOST }}
+    username: ${{ secrets.EC2_USER }}
+    password: ${{ secrets.EC2_PASSWORD }}
+    port: 22
+    debug: true
+    script: |
+      echo "SSH connection successful"
+      docker --version
