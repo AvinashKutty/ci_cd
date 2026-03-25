@@ -56,11 +56,12 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          password: ${{ secrets.EC2_PASSWORD }}
+          password: ${{ secrets.EC2_PASSWORD }}   # wrap in single quotes in GitHub secrets if special chars exist
           port: 22
-          debug: true          # optional, shows full SSH logs
+          debug: true
           script: |
-            sudo docker pull $IMAGE_NAME:$IMAGE_TAG
+            # Use full image name and SHA tag to avoid missing variables
+            sudo docker pull avinashanand28/ci-cd-demo:${{ github.sha }}
             sudo docker stop ci-cd-demo || true
             sudo docker rm ci-cd-demo || true
-            sudo docker run -d --name ci-cd-demo -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG
+            sudo docker run -d --name ci-cd-demo -p 5000:5000 avinashanand28/ci-cd-demo:${{ github.sha }}
