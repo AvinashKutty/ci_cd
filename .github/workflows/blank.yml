@@ -12,44 +12,59 @@ env:
 jobs:
   build-test-push-deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2️⃣ Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
+      # 3️⃣ Install dependencies & run tests
       - name: Install dependencies and Run Tests
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           pytest tests/
 
+      # 4️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 5️⃣ Build Docker image
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
+      # 6️⃣ Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # 7️⃣ Push Docker image
       - name: Push Docker Image to Docker Hub
         run: docker push $IMAGE_NAME:$IMAGE_TAG
 
+      # 8️⃣ Deploy to EC2 via SSH (password authentication)
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           password: ${{ secrets.EC2_PASSWORD }}
+          port: 22
           script: |
+            # Pull the latest image
             docker pull $IMAGE_NAME:$IMAGE_TAG
+
+            # Stop & remove old container if exists
             docker stop ci-cd-demo || true
             docker rm ci-cd-demo || true
+
+            # Run new container
             docker run -d --name ci-cd-demo -p 5000:5000 $IMAGE_NAME:$IMAGE_TAG
