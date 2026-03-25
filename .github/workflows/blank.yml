@@ -35,28 +35,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # 5️⃣ Build Docker image
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
-
-      # 6️⃣ Log in to Docker Hub
+      # 5️⃣ Log in to Docker Hub (needed for cache)
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 7️⃣ Push Docker image
-      - name: Push Docker Image to Docker Hub
-        run: docker push $IMAGE_NAME:$IMAGE_TAG
+      # 6️⃣ Build Docker image with cache
+      - name: Build and cache Docker Image
+        run: |
+          docker buildx build \
+            --cache-from=type=registry,ref=$IMAGE_NAME:latest \
+            --cache-to=type=registry,ref=$IMAGE_NAME:latest,mode=max \
+            -t $IMAGE_NAME:$IMAGE_TAG \
+            --push \
+            .
 
-      # 8️⃣ Deploy to EC2 via SSH (password authentication)
+      # 7️⃣ Deploy to EC2 via SSH
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          password: ${{ secrets.EC2_PASSWORD }}   # wrap in single quotes in GitHub secrets if special chars exist
+          password: ${{ secrets.EC2_PASSWORD }}   # wrap in single quotes if special chars exist
           port: 22
           debug: true
           script: |
